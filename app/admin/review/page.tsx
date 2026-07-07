@@ -39,21 +39,36 @@ function firebaseConfigParams(): string {
 }
 
 async function registerAdminDevice(user: User) {
-  if (!("Notification" in window) || Notification.permission === "denied") return;
+  if (!("Notification" in window) || Notification.permission === "denied") {
+    console.log("FCM debug: Notification not supported or denied");
+    return;
+  }
 
   const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-  if (!vapidKey) return;
+  if (!vapidKey) {
+    console.log("FCM debug: no vapidKey");
+    return;
+  }
 
   const messaging = await getMessagingIfSupported();
-  if (!messaging) return;
+  if (!messaging) {
+    console.log("FCM debug: messaging not supported on this device");
+    return;
+  }
 
   if (Notification.permission === "default") {
     const permission = await Notification.requestPermission();
-    if (permission !== "granted") return;
+    if (permission !== "granted") {
+      console.log("FCM debug: permission not granted, got:", permission);
+      return;
+    }
   }
 
   const existingToken = localStorage.getItem(FCM_TOKEN_KEY);
-  if (existingToken) return;
+  if (existingToken) {
+    console.log("FCM debug: existing token found in localStorage, skipping");
+    return;
+  }
 
   const registration = await navigator.serviceWorker.register(
     `/firebase-messaging-sw.js?${firebaseConfigParams()}`,
@@ -64,7 +79,12 @@ async function registerAdminDevice(user: User) {
     serviceWorkerRegistration: registration,
   });
 
-  if (!token) return;
+  if (!token) {
+    console.log("FCM debug: getToken returned no token");
+    return;
+  }
+
+  console.log("FCM debug: got token, saving to Firestore");
 
   await setDoc(
     doc(db, "adminDevices", token),
@@ -76,8 +96,7 @@ async function registerAdminDevice(user: User) {
     { merge: true },
   );
 
-  localStorage.setItem(FCM_TOKEN_KEY, token);
-}
+  localStorage.setItem(FCM_TOKEN_KEY,
 
 export default function AdminReviewPage() {
   const [user, setUser] = useState<User | null>(null);
