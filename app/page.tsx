@@ -10,7 +10,7 @@ import {
 import { LOGO_SRC } from "@/lib/logo";
 import { getHomepageSightings } from "@/lib/sightings";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function HomePage() {
   const sightings = await getHomepageSightings();
