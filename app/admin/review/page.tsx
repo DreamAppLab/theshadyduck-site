@@ -155,6 +155,9 @@ export default function AdminReviewPage() {
           await loadQueue();
         } catch (error) {
           console.error("Admin setup failed:", error);
+      const message = error instanceof Error ? error.message : String(error);
+      setAuthError(`Device registration failed: ${message}`);
+          console.error("Admin setup failed:", error);
         }
       } else {
         setQueue([]);
