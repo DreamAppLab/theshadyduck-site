@@ -38,35 +38,35 @@ function firebaseConfigParams(): string {
   }).toString();
 }
 
-async function registerAdminDevice(user: User) {
+async function registerAdminDevice(user: User, log: (message: string) => void) {
   if (!("Notification" in window) || Notification.permission === "denied") {
-    console.log("FCM debug: Notification not supported or denied");
+    log("FCM debug: Notification not supported or denied");
     return;
   }
 
   const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
   if (!vapidKey) {
-    console.log("FCM debug: no vapidKey");
+    log("FCM debug: no vapidKey");
     return;
   }
 
   const messaging = await getMessagingIfSupported();
   if (!messaging) {
-    console.log("FCM debug: messaging not supported on this device");
+    log("FCM debug: messaging not supported on this device");
     return;
   }
 
   if (Notification.permission === "default") {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
-      console.log("FCM debug: permission not granted, got:", permission);
+      log("FCM debug: permission not granted, got: " + permission);
       return;
     }
   }
 
   const existingToken = localStorage.getItem(FCM_TOKEN_KEY);
   if (existingToken) {
-    console.log("FCM debug: existing token found in localStorage, skipping");
+    log("FCM debug: existing token found in localStorage, skipping");
     return;
   }
 
@@ -80,11 +80,11 @@ async function registerAdminDevice(user: User) {
   });
 
   if (!token) {
-    console.log("FCM debug: getToken returned no token");
+    log("FCM debug: getToken returned no token");
     return;
   }
 
-  console.log("FCM debug: got token, saving to Firestore");
+  log("FCM debug: got token, saving to Firestore");
 
   await setDoc(
     doc(db, "adminDevices", token),
@@ -96,7 +96,9 @@ async function registerAdminDevice(user: User) {
     { merge: true },
   );
 
-  localStorage.setItem(FCM_TOKEN_KEY,
+  localStorage.setItem(FCM_TOKEN_KEY, token);
+  log("FCM debug: saved successfully");
+}
 
 export default function AdminReviewPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -106,6 +108,12 @@ export default function AdminReviewPage() {
   const [queueLoading, setQueueLoading] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+
+  const addDebugLog = (message: string) => {
+    console.log(message);
+    setDebugLog((current) => [...current, message]);
+  };
 
   const loadQueue = useCallback(async () => {
     setQueueLoading(true);
@@ -170,13 +178,12 @@ export default function AdminReviewPage() {
 
       if (nextUser) {
         try {
-          await registerAdminDevice(nextUser);
+          await registerAdminDevice(nextUser, addDebugLog);
           await loadQueue();
         } catch (error) {
           console.error("Admin setup failed:", error);
-      const message = error instanceof Error ? error.message : String(error);
-      setAuthError(`Device registration failed: ${message}`);
-          console.error("Admin setup failed:", error);
+          const message = error instanceof Error ? error.message : String(error);
+          setAuthError(`Device registration failed: ${message}`);
         }
       } else {
         setQueue([]);
@@ -270,6 +277,22 @@ export default function AdminReviewPage() {
                     Sign out
                   </button>
                 </div>
+
+                {debugLog.length > 0 ? (
+                  <pre
+                    style={{
+                      fontSize: "12px",
+                      whiteSpace: "pre-wrap",
+                      background: "#111",
+                      color: "#0f0",
+                      padding: "8px",
+                      borderRadius: "4px",
+                      marginTop: "8px",
+                    }}
+                  >
+                    {debugLog.join("\n")}
+                  </pre>
+                ) : null}
 
                 {actionError ? (
                   <p className="form-message form-message-error" role="alert">
