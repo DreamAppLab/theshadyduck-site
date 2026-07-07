@@ -38,9 +38,7 @@ export default function LocationAutocomplete({
       const { PlaceAutocompleteElement } = await importLibrary("places");
       if (cancelled || !hostRef.current) return;
 
-      const autocomplete = new PlaceAutocompleteElement({
-        includedPrimaryTypes: ["locality", "administrative_area_level_3", "postal_town"],
-      });
+      const autocomplete = new PlaceAutocompleteElement();
 
       autocompleteRef.current = autocomplete;
       hostRef.current.innerHTML = "";
@@ -53,7 +51,14 @@ export default function LocationAutocomplete({
         const place = selectEvent.placePrediction.toPlace();
 
         await place.fetchFields({
-          fields: ["addressComponents", "location", "displayName", "formattedAddress"],
+          fields: [
+            "addressComponents",
+            "location",
+            "displayName",
+            "formattedAddress",
+            "types",
+            "primaryType",
+          ],
         });
 
         onLocationSelect(parsePlace(place));

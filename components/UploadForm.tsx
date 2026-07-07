@@ -5,7 +5,7 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { type FormEvent, useEffect, useId, useState } from "react";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
 import { db, storage } from "@/lib/firebase";
-import type { LocationData } from "@/lib/parse-place";
+import { formatLocationPreview, type LocationData } from "@/lib/parse-place";
 
 export default function UploadForm() {
   const nameId = useId();
@@ -47,7 +47,7 @@ export default function UploadForm() {
     }
 
     if (!location) {
-      setError("Please select a city or locality from the location dropdown.");
+      setError("Please select a location from the dropdown.");
       return;
     }
 
@@ -65,6 +65,7 @@ export default function UploadForm() {
         sightingRef,
         {
           name: name.trim() || null,
+          locationName: location.locationName,
           city: location.city,
           state: location.state,
           country: location.country,
@@ -119,7 +120,15 @@ export default function UploadForm() {
           Location <span className="form-required">*</span>
         </label>
         <LocationAutocomplete onLocationSelect={setLocation} disabled={uploading} />
-        <p className="form-hint">Start typing a city and choose from the suggestions.</p>
+        <p className="form-hint">
+          Start typing a city, campground, landmark, or place name and choose from the
+          suggestions.
+        </p>
+        {location ? (
+          <p className="location-preview" role="status">
+            Selected: {formatLocationPreview(location)}
+          </p>
+        ) : null}
       </div>
 
       <div className="form-field">

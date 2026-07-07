@@ -14,6 +14,7 @@ service cloud.firestore {
         && (request.resource.data.name == null || request.resource.data.name is string)
         && (request.resource.data.state == null || request.resource.data.state is string)
         && (request.resource.data.notes == null || request.resource.data.notes is string)
+        && (request.resource.data.locationName == null || request.resource.data.locationName is string)
         && request.resource.data.createdAt == request.time;
 
       allow update, delete: if false;

@@ -1,4 +1,5 @@
 export interface LocationData {
+  locationName: string | null;
   city: string;
   state: string | null;
   country: string;
@@ -7,11 +8,54 @@ export interface LocationData {
   displayName: string;
 }
 
+const CITY_TYPES = new Set([
+  "locality",
+  "postal_town",
+  "administrative_area_level_3",
+  "administrative_area_level_2",
+  "neighborhood",
+  "sublocality",
+]);
+
 function componentText(
   component: google.maps.places.AddressComponent,
   preferShort = false,
 ): string {
   return (preferShort ? component.shortText : component.longText) ?? "";
+}
+
+function formatCityArea(city: string, state: string | null, country: string): string {
+  if (state) return `${city}, ${state}`;
+  if (country) return `${city}, ${country}`;
+  return city;
+}
+
+function isCitySelection(place: google.maps.places.Place): boolean {
+  const types = place.types ?? [];
+  const primaryType = place.primaryType;
+
+  if (primaryType && CITY_TYPES.has(primaryType)) return true;
+  if (types.includes("establishment") || types.includes("point_of_interest")) return false;
+
+  return types.some((type) => CITY_TYPES.has(type));
+}
+
+function buildLocationName(
+  place: google.maps.places.Place,
+  city: string,
+  state: string | null,
+  country: string,
+): string | null {
+  if (isCitySelection(place)) {
+    return formatCityArea(city, state, country);
+  }
+
+  return place.displayName ?? null;
+}
+
+export function formatLocationPreview(location: LocationData): string {
+  if (location.locationName) return location.locationName;
+  return formatCityArea(location.city, location.state, location.country);
 }
 
 export function parsePlace(place: google.maps.places.Place): LocationData | null {
@@ -53,6 +97,7 @@ export function parsePlace(place: google.maps.places.Place): LocationData | null
   if (typeof lat !== "number" || typeof lng !== "number") return null;
 
   return {
+    locationName: buildLocationName(place, city, state, country),
     city,
     state,
     country,
