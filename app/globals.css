@@ -34,7 +34,6 @@
     display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
   }
   .brand{display:flex;align-items:center;gap:10px;}
-  .brand .nav-logo{border-radius:4px;}
   .brand span{
     font-family:'Anton',sans-serif;color:#fff;font-size:22px;letter-spacing:0.5px;
     text-transform:uppercase;
