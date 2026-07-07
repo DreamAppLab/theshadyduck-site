@@ -1,5 +1,5 @@
 import Navbar from "@/components/Navbar";
-import LegalFooter, { formatLegalDate } from "@/components/LegalFooter";
+import { formatLegalDate } from "@/components/LegalFooter";
 
 const CONTACT_EMAIL = "lab@dreamapplab.com";
 
@@ -107,8 +107,6 @@ export default function PrivacyPolicyPage() {
           </article>
         </div>
       </section>
-
-      <LegalFooter alternateLabel="Terms of Service" alternateHref="/terms-of-service" />
     </>
   );
 }

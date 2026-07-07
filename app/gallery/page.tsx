@@ -58,10 +58,6 @@ export default async function GalleryPage() {
             )}
           </div>
         </section>
-
-        <footer>
-          <div className="fine">The Shady Duck · theshadyduck.com</div>
-        </footer>
       </div>
     </>
   );

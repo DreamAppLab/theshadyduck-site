@@ -24,10 +24,6 @@ export default async function SpottingsPage() {
       </section>
 
       <SpottingsMaps sightings={sightings} />
-
-      <footer>
-        <div className="fine">The Shady Duck · theshadyduck.com</div>
-      </footer>
     </>
   );
 }

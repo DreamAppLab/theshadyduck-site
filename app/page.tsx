@@ -130,15 +130,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      <footer>
-        <img
-          src={LOGO_SRC}
-          alt="The Shady Duck logo"
-          style={{ width: "70px", height: "auto", borderRadius: "6px" }}
-        />
-        <div className="fine">The Shady Duck · theshadyduck.com</div>
-      </footer>
     </>
   );
 }

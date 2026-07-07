@@ -428,3 +428,17 @@
 @media (max-width:520px){
   .legal-article{padding:24px 20px;}
 }
+
+/* SITE FOOTER */
+.site-footer{
+  padding:28px 0 40px;text-align:center;border-top:1px solid var(--line);
+  margin-top:12px;
+}
+.site-footer-links{
+  font-family:'Courier Prime',monospace;font-size:12px;color:#8C8064;margin-bottom:6px;
+}
+.site-footer-links a{color:#B8AC8E;text-decoration:underline;}
+.site-footer-links a:hover{color:var(--gold);}
+.site-footer-copy{
+  font-family:'Courier Prime',monospace;font-size:11px;color:#8C8064;
+}

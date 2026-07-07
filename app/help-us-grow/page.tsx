@@ -20,9 +20,6 @@ export default function HelpUsGrowPage() {
           <GrowForm />
         </div>
       </section>
-      <footer>
-        <div className="fine">The Shady Duck · theshadyduck.com</div>
-      </footer>
     </>
   );
 }
