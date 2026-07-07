@@ -24,7 +24,7 @@ export default function Navbar({ currentLink }: NavbarProps) {
           <Link href="/" className={navClass(currentLink, "home")}>Latest Sighting</Link>
           <Link href="/spottings" className={navClass(currentLink, "spottings")}>Spottings</Link>
           <Link href="/upload" className={navClass(currentLink, "upload")}>Upload a Photo</Link>
-          <Link href="#" className={navClass(currentLink, "grow")}>Help Us Grow</Link>
+          <Link href="/help-us-grow" className={navClass(currentLink, "grow")}>Help Us Grow</Link>
         </div>
       </div>
     </nav>
