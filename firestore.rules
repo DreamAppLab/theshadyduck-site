@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /sightings/{sightingId} {
+      allow read: if resource.data.approved == true;
+
+      allow create: if request.resource.data.approved == false
+        && request.resource.data.photoUrl is string
+        && request.resource.data.city is string
+        && request.resource.data.country is string
+        && request.resource.data.lat is number
+        && request.resource.data.lng is number
+        && (request.resource.data.name == null || request.resource.data.name is string)
+        && (request.resource.data.state == null || request.resource.data.state is string)
+        && (request.resource.data.notes == null || request.resource.data.notes is string)
+        && request.resource.data.createdAt == request.time;
+
+      allow update, delete: if false;
+    }
+  }
+}

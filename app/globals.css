@@ -257,3 +257,58 @@
   }
 
 .page-gallery .wrap { max-width: 1200px; }
+
+/* UPLOAD FORM */
+.upload-section{padding:28px 0 70px;}
+.upload-form{
+  max-width:640px;margin:0 auto;background:#1B160F;border:1px solid var(--line);
+  padding:28px 28px 32px;box-shadow:0 10px 26px rgba(0,0,0,0.08);
+}
+.form-field{margin-bottom:22px;}
+.form-label{
+  display:block;font-weight:700;font-size:14px;color:var(--gold);
+  margin-bottom:8px;letter-spacing:0.2px;
+}
+.form-optional,.form-hint{
+  font-family:'Courier Prime',monospace;font-size:12px;color:#B8AC8E;font-weight:400;
+}
+.form-required{color:var(--orange);}
+.form-hint{margin:8px 0 0;}
+.form-input,.form-textarea,.form-file{
+  width:100%;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--ink);
+  background:#100D08;border:1px solid var(--line);border-radius:4px;padding:12px 14px;
+}
+.form-input:focus,.form-textarea:focus,.form-file:focus{
+  outline:2px solid var(--gold);outline-offset:1px;
+}
+.form-textarea{resize:vertical;min-height:110px;}
+.form-file{padding:10px 14px;color:#D9CDB0;}
+.form-file::file-selector-button{
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;color:var(--dark);
+  background:var(--gold);border:0;border-radius:3px;padding:8px 12px;margin-right:12px;cursor:pointer;
+}
+.location-autocomplete-host{display:block;width:100%;}
+.location-autocomplete-host gmp-place-autocomplete{width:100%;}
+.photo-preview{
+  margin-top:14px;background:#100D08;border:1px solid var(--line);padding:8px;
+  box-shadow:0 6px 14px rgba(0,0,0,0.10);
+}
+.photo-preview img{width:100%;max-width:320px;display:block;aspect-ratio:4/3;object-fit:cover;}
+.form-message{
+  margin:0 0 18px;padding:12px 14px;border-radius:4px;font-size:14px;line-height:1.5;
+}
+.form-message-error{
+  background:rgba(224,85,30,0.12);border:1px solid var(--maroon);color:#F3C4A8;
+}
+.form-message-success{
+  background:rgba(63,169,224,0.12);border:1px solid var(--blue);color:#C9E8F8;
+}
+.form-submit{
+  border:0;cursor:pointer;width:100%;text-align:center;
+}
+.form-submit:disabled{
+  opacity:0.65;cursor:not-allowed;
+}
+@media (max-width:520px){
+  .upload-form{padding:22px 18px 26px;}
+}
