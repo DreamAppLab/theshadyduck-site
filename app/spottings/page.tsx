@@ -2,8 +2,11 @@ import Navbar from "@/components/Navbar";
 import SpottingsMaps from "@/components/SpottingsMaps";
 import { getAllApprovedSightings } from "@/lib/sightings";
 
+export const dynamic = "force-dynamic";
+
 export default async function SpottingsPage() {
   const sightings = await getAllApprovedSightings();
+
 
   return (
     <>
