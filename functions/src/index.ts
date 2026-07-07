@@ -5,8 +5,15 @@ import { getStorage } from "firebase-admin/storage";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
+import twilio from "twilio";
 
 const ADMIN_EMAIL = "eddieskehan@gmail.com";
+
+const twilioAccountSid = defineSecret("TWILIO_ACCOUNT_SID");
+const twilioAuthToken = defineSecret("TWILIO_AUTH_TOKEN");
+const twilioPhoneNumber = defineSecret("TWILIO_PHONE_NUMBER");
+const adminPhoneNumber = defineSecret("ADMIN_PHONE_NUMBER");
 
 if (!getApps().length) {
   initializeApp();
@@ -45,6 +52,19 @@ async function sendAdminNotifications(title: string, body: string, imageUrl?: st
         }
       : undefined,
   });
+}
+
+async function sendAdminSms(message: string) {
+  try {
+    const client = twilio(twilioAccountSid.value(), twilioAuthToken.value());
+    await client.messages.create({
+      body: message,
+      from: twilioPhoneNumber.value(),
+      to: adminPhoneNumber.value(),
+    });
+  } catch (error) {
+    console.error("Failed to send SMS:", error);
+  }
 }
 
 export const approveSighting = onCall(async (request) => {
@@ -104,36 +124,52 @@ export const rejectSighting = onCall(async (request) => {
   return { success: true };
 });
 
-export const onSightingCreated = onDocumentCreated("sightings/{sightingId}", async (event) => {
-  const data = event.data?.data();
-  if (!data) return;
+export const onSightingCreated = onDocumentCreated(
+  {
+    document: "sightings/{sightingId}",
+    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber, adminPhoneNumber],
+  },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
 
-  const name = typeof data.name === "string" && data.name.trim() ? data.name.trim() : "Anonymous";
-  const location =
-    (typeof data.locationName === "string" && data.locationName) ||
-    [data.city, data.state, data.country].filter(Boolean).join(", ");
-  const photoUrl = typeof data.photoUrl === "string" ? data.photoUrl : undefined;
+    const name = typeof data.name === "string" && data.name.trim() ? data.name.trim() : "Anonymous";
+    const location =
+      (typeof data.locationName === "string" && data.locationName) ||
+      [data.city, data.state, data.country].filter(Boolean).join(", ");
+    const photoUrl = typeof data.photoUrl === "string" ? data.photoUrl : undefined;
 
-  await sendAdminNotifications(
-    "New sighting submitted",
-    `${name} at ${location}`,
-    photoUrl,
-  );
-});
+    await sendAdminNotifications(
+      "New sighting submitted",
+      `${name} at ${location}`,
+      photoUrl,
+    );
 
-export const onGrowRequestCreated = onDocumentCreated("growRequests/{requestId}", async (event) => {
-  const data = event.data?.data();
-  if (!data) return;
+    await sendAdminSms(`New Shady Duck sighting: ${name} at ${location}. Review at theshadyduck.com/admin/review`);
+  },
+);
 
-  const name = typeof data.name === "string" ? data.name : "Someone";
-  const city = typeof data.city === "string" ? data.city : "";
-  const state = typeof data.state === "string" ? data.state : "";
+export const onGrowRequestCreated = onDocumentCreated(
+  {
+    document: "growRequests/{requestId}",
+    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber, adminPhoneNumber],
+  },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
 
-  await sendAdminNotifications(
-    "New grow request",
-    `${name} requested ducks for ${[city, state].filter(Boolean).join(", ")}`,
-  );
-});
+    const name = typeof data.name === "string" ? data.name : "Someone";
+    const city = typeof data.city === "string" ? data.city : "";
+    const state = typeof data.state === "string" ? data.state : "";
+
+    await sendAdminNotifications(
+      "New grow request",
+      `${name} requested ducks for ${[city, state].filter(Boolean).join(", ")}`,
+    );
+
+    await sendAdminSms(`New Shady Duck grow request from ${name} (${[city, state].filter(Boolean).join(", ")}). Review at theshadyduck.com/admin/review`);
+  },
+);
 
 function extractStoragePath(photoUrl: string): string | null {
   try {
