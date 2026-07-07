@@ -2,7 +2,7 @@ import Link from "next/link";
 import { LOGO_SRC } from "@/lib/logo";
 
 
-type NavLink = "home" | "spottings" | "upload" | "grow" | "about" | "contact";
+type NavLink = "home" | "spottings" | "upload" | "grow";
 
 interface NavbarProps {
   currentLink?: NavLink;
@@ -25,8 +25,6 @@ export default function Navbar({ currentLink }: NavbarProps) {
           <Link href="/spottings" className={navClass(currentLink, "spottings")}>Spottings</Link>
           <Link href="/upload" className={navClass(currentLink, "upload")}>Upload a Photo</Link>
           <Link href="#" className={navClass(currentLink, "grow")}>Help Us Grow</Link>
-          <Link href="#" className={navClass(currentLink, "about")}>About</Link>
-          <Link href="#" className={navClass(currentLink, "contact")}>Contact</Link>
         </div>
       </div>
     </nav>
