@@ -95,3 +95,19 @@ export async function getGallerySightings(): Promise<Sighting[]> {
     return [];
   }
 }
+
+export async function getAllApprovedSightings(): Promise<Sighting[]> {
+  try {
+    const sightingsQuery = query(
+      collection(db, "sightings"),
+      where("approved", "==", true),
+      orderBy("createdAt", "desc"),
+    );
+
+    const snapshot = await getDocs(sightingsQuery);
+    return snapshot.docs.map(docToSighting);
+  } catch (error) {
+    console.error("Failed to load map sightings:", error);
+    return [];
+  }
+}
