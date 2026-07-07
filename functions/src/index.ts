@@ -13,7 +13,9 @@ const ADMIN_EMAIL = "eddieskehan@gmail.com";
 const twilioAccountSid = defineSecret("TWILIO_ACCOUNT_SID");
 const twilioAuthToken = defineSecret("TWILIO_AUTH_TOKEN");
 const twilioPhoneNumber = defineSecret("TWILIO_PHONE_NUMBER");
-const adminPhoneNumber = defineSecret("ADMIN_PHONE_NUMBER");
+
+const ADMIN_CONFIG_COLLECTION = "adminConfig";
+const ADMIN_NOTIFICATIONS_DOC = "notifications";
 
 if (!getApps().length) {
   initializeApp();
@@ -54,13 +56,33 @@ async function sendAdminNotifications(title: string, body: string, imageUrl?: st
   });
 }
 
+async function getAdminSmsRecipient(): Promise<string | null> {
+  const snapshot = await db
+    .collection(ADMIN_CONFIG_COLLECTION)
+    .doc(ADMIN_NOTIFICATIONS_DOC)
+    .get();
+  const phone = snapshot.data()?.smsRecipientPhone;
+
+  if (typeof phone !== "string" || !phone.startsWith("+")) {
+    return null;
+  }
+
+  return phone;
+}
+
 async function sendAdminSms(message: string) {
   try {
+    const to = await getAdminSmsRecipient();
+    if (!to) {
+      console.log("No SMS recipient configured in adminConfig/notifications, skipping SMS");
+      return;
+    }
+
     const client = twilio(twilioAccountSid.value(), twilioAuthToken.value());
     await client.messages.create({
       body: message,
       from: twilioPhoneNumber.value(),
-      to: adminPhoneNumber.value(),
+      to,
     });
   } catch (error) {
     console.error("Failed to send SMS:", error);
@@ -127,7 +149,7 @@ export const rejectSighting = onCall(async (request) => {
 export const onSightingCreated = onDocumentCreated(
   {
     document: "sightings/{sightingId}",
-    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber, adminPhoneNumber],
+    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
   },
   async (event) => {
     const data = event.data?.data();
@@ -152,7 +174,7 @@ export const onSightingCreated = onDocumentCreated(
 export const onGrowRequestCreated = onDocumentCreated(
   {
     document: "growRequests/{requestId}",
-    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber, adminPhoneNumber],
+    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
   },
   async (event) => {
     const data = event.data?.data();

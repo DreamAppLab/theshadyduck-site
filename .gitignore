@@ -41,3 +41,4 @@ next-env.d.ts
 
 # firebase admin
 service-account.json
+import-package/
