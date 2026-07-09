@@ -6,16 +6,10 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
-import twilio from "twilio";
 
 const ADMIN_EMAIL = "eddieskehan@gmail.com";
 
-const twilioAccountSid = defineSecret("TWILIO_ACCOUNT_SID");
-const twilioAuthToken = defineSecret("TWILIO_AUTH_TOKEN");
-const twilioPhoneNumber = defineSecret("TWILIO_PHONE_NUMBER");
-
-const ADMIN_CONFIG_COLLECTION = "adminConfig";
-const ADMIN_NOTIFICATIONS_DOC = "notifications";
+const brevoApiKey = defineSecret("BREVO_API_KEY");
 
 if (!getApps().length) {
   initializeApp();
@@ -56,36 +50,63 @@ async function sendAdminNotifications(title: string, body: string, imageUrl?: st
   });
 }
 
-async function getAdminSmsRecipient(): Promise<string | null> {
-  const snapshot = await db
-    .collection(ADMIN_CONFIG_COLLECTION)
-    .doc(ADMIN_NOTIFICATIONS_DOC)
-    .get();
-  const phone = snapshot.data()?.smsRecipientPhone;
+async function sendAdminBrevoEmail({
+  name,
+  location,
+  notes,
+}: {
+  name: string;
+  location: string;
+  notes: string | null;
+}) {
+  const reviewUrl = "https://theshadyduck.com/admin/review";
+  const textContent = [
+    "A new Shady Duck sighting was submitted for review.",
+    "",
+    `Submitter: ${name}`,
+    `Location: ${location}`,
+    `Description: ${notes?.trim() || "No description provided."}`,
+    "",
+    `Review now: ${reviewUrl}`,
+  ].join("\n");
+  const htmlContent = `
+    <p>A new Shady Duck sighting was submitted for review.</p>
+    <p><strong>Submitter:</strong> ${name}</p>
+    <p><strong>Location:</strong> ${location}</p>
+    <p><strong>Description:</strong> ${notes?.trim() || "No description provided."}</p>
+    <p><a href="${reviewUrl}">Open admin review queue</a></p>
+  `;
 
-  if (typeof phone !== "string" || !phone.startsWith("+")) {
-    return null;
-  }
-
-  return phone;
-}
-
-async function sendAdminSms(message: string) {
   try {
-    const to = await getAdminSmsRecipient();
-    if (!to) {
-      console.log("No SMS recipient configured in adminConfig/notifications, skipping SMS");
-      return;
-    }
-
-    const client = twilio(twilioAccountSid.value(), twilioAuthToken.value());
-    await client.messages.create({
-      body: message,
-      from: twilioPhoneNumber.value(),
-      to,
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": brevoApiKey.value(),
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: {
+          name: "Shady Duck",
+          email: "lab@dreamapplab.com",
+        },
+        to: [
+          {
+            email: "eddieskehan@gmail.com",
+          },
+        ],
+        subject: "New Shady Duck sighting submitted for review",
+        textContent,
+        htmlContent,
+      }),
     });
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.error("Failed to send Brevo email:", response.status, body);
+    }
   } catch (error) {
-    console.error("Failed to send SMS:", error);
+    console.error("Failed to send Brevo email:", error);
   }
 }
 
@@ -149,7 +170,7 @@ export const rejectSighting = onCall(async (request) => {
 export const onSightingCreated = onDocumentCreated(
   {
     document: "sightings/{sightingId}",
-    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
+    secrets: [brevoApiKey],
   },
   async (event) => {
     const data = event.data?.data();
@@ -167,14 +188,14 @@ export const onSightingCreated = onDocumentCreated(
       photoUrl,
     );
 
-    await sendAdminSms(`New Shady Duck sighting: ${name} at ${location}. Review at theshadyduck.com/admin/review`);
+    const notes = typeof data.notes === "string" ? data.notes : null;
+    await sendAdminBrevoEmail({ name, location, notes });
   },
 );
 
 export const onGrowRequestCreated = onDocumentCreated(
   {
     document: "growRequests/{requestId}",
-    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
   },
   async (event) => {
     const data = event.data?.data();
@@ -188,8 +209,6 @@ export const onGrowRequestCreated = onDocumentCreated(
       "New grow request",
       `${name} requested ducks for ${[city, state].filter(Boolean).join(", ")}`,
     );
-
-    await sendAdminSms(`New Shady Duck grow request from ${name} (${[city, state].filter(Boolean).join(", ")}). Review at theshadyduck.com/admin/review`);
   },
 );
 

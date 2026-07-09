@@ -34,8 +34,8 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong>Admin account:</strong> The site administrator signs in using Google
-                Sign-In. We store the administrator&apos;s email and, if provided, phone number for
-                SMS notification purposes.
+                Sign-In. We store the administrator&apos;s email for moderation and notification
+                purposes.
               </li>
               <li>
                 <strong>Usage data:</strong> We may use standard hosting and analytics tools (such
@@ -50,19 +50,15 @@ export default function PrivacyPolicyPage() {
               <li>To display approved duck sightings publicly on the site.</li>
               <li>To review and moderate submissions before they go live.</li>
               <li>
-                To send SMS notifications to the site administrator when a new sighting is submitted
-                for review (opt-in, admin only — see SMS Notifications below).
+                To send email notifications to the site administrator when a new sighting is
+                submitted for review.
               </li>
             </ul>
 
-            <h2>SMS Notifications</h2>
+            <h2>Email Notifications</h2>
             <p>
-              If the site administrator opts in to SMS alerts, we use Twilio to send text messages
-              notifying them of new sighting submissions awaiting review. Message frequency varies
-              based on submission volume. Message and data rates may apply. Reply STOP to any message
-              to opt out, or HELP for assistance. Phone numbers used for SMS alerts are not shared
-              with third parties except our SMS service provider (Twilio) as needed to deliver
-              messages.
+              We use Brevo transactional email to notify the site administrator when new sighting
+              submissions are awaiting review.
             </p>
 
             <h2>Third-Party Services</h2>
@@ -73,7 +69,7 @@ export default function PrivacyPolicyPage() {
                 processing
               </li>
               <li>Google Sign-In — for administrator authentication</li>
-              <li>Twilio — for SMS delivery</li>
+              <li>Brevo — for transactional email delivery</li>
               <li>Vercel — for website hosting</li>
             </ul>
             <p>

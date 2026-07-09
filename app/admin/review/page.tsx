@@ -7,11 +7,10 @@ import {
   signOut,
   type User,
 } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { collection, doc, getDocs, orderBy, query, setDoc, where } from "firebase/firestore";
 import { getToken } from "firebase/messaging";
 import { httpsCallable } from "firebase/functions";
-import Link from "next/link";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import {
   formatLocationDisplay,
@@ -19,18 +18,6 @@ import {
   formatSubmitterName,
 } from "@/lib/format-sighting";
 import { auth, db, functions, getMessagingIfSupported } from "@/lib/firebase";
-import {
-  digitsOnly,
-  formatUsPhoneDisplay,
-  formatUsPhoneInput,
-  toUsE164,
-} from "@/lib/phone";
-import {
-  ADMIN_CONFIG_COLLECTION,
-  ADMIN_NOTIFICATIONS_DOC,
-  PRIVACY_POLICY_PATH,
-  TERMS_OF_SERVICE_PATH,
-} from "@/lib/site-links";
 import type { Sighting } from "@/lib/sightings";
 
 const ADMIN_EMAIL = "eddieskehan@gmail.com";
@@ -122,13 +109,6 @@ export default function AdminReviewPage() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [debugLog, setDebugLog] = useState<string[]>([]);
-  const [phoneDigits, setPhoneDigits] = useState("");
-  const [savedPhoneE164, setSavedPhoneE164] = useState<string | null>(null);
-  const [phoneLoading, setPhoneLoading] = useState(false);
-  const [phoneSaving, setPhoneSaving] = useState(false);
-  const [phoneError, setPhoneError] = useState<string | null>(null);
-  const [phoneSuccess, setPhoneSuccess] = useState<string | null>(null);
-  const phoneId = useId();
 
   const addDebugLog = (message: string) => {
     console.log(message);
@@ -181,31 +161,6 @@ export default function AdminReviewPage() {
     }
   }, []);
 
-  const loadNotificationPreferences = useCallback(async () => {
-    setPhoneLoading(true);
-    setPhoneError(null);
-
-    try {
-      const configRef = doc(db, ADMIN_CONFIG_COLLECTION, ADMIN_NOTIFICATIONS_DOC);
-      const snapshot = await getDoc(configRef);
-      const smsRecipientPhone = snapshot.data()?.smsRecipientPhone;
-
-      if (typeof smsRecipientPhone === "string" && smsRecipientPhone) {
-        setSavedPhoneE164(smsRecipientPhone);
-        setPhoneDigits(digitsOnly(smsRecipientPhone).replace(/^1/, ""));
-      } else {
-        setSavedPhoneE164(null);
-        setPhoneDigits("");
-      }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to load notification preferences.";
-      setPhoneError(message);
-    } finally {
-      setPhoneLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       setAuthLoading(true);
@@ -224,7 +179,7 @@ export default function AdminReviewPage() {
       if (nextUser) {
         try {
           await registerAdminDevice(nextUser, addDebugLog);
-          await Promise.all([loadQueue(), loadNotificationPreferences()]);
+          await loadQueue();
         } catch (error) {
           console.error("Admin setup failed:", error);
           const message = error instanceof Error ? error.message : String(error);
@@ -238,47 +193,7 @@ export default function AdminReviewPage() {
     });
 
     return unsubscribe;
-  }, [loadQueue, loadNotificationPreferences]);
-
-  const handlePhoneChange = (value: string) => {
-    setPhoneSuccess(null);
-    setPhoneError(null);
-    setPhoneDigits(digitsOnly(value).slice(0, 10));
-  };
-
-  const handleSavePhone = async () => {
-    setPhoneSaving(true);
-    setPhoneError(null);
-    setPhoneSuccess(null);
-
-    const e164 = toUsE164(phoneDigits);
-    if (!e164) {
-      setPhoneError("Enter a valid 10-digit US phone number.");
-      setPhoneSaving(false);
-      return;
-    }
-
-    try {
-      await setDoc(
-        doc(db, ADMIN_CONFIG_COLLECTION, ADMIN_NOTIFICATIONS_DOC),
-        {
-          smsRecipientPhone: e164,
-          updatedAt: serverTimestamp(),
-          updatedBy: user?.email ?? ADMIN_EMAIL,
-        },
-        { merge: true },
-      );
-
-      setSavedPhoneE164(e164);
-      setPhoneSuccess(`Saved — you'll receive SMS alerts at ${formatUsPhoneDisplay(e164)}.`);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to save phone number.";
-      setPhoneError(message);
-    } finally {
-      setPhoneSaving(false);
-    }
-  };
+  }, [loadQueue]);
 
   const handleSignIn = async () => {
     setAuthError(null);
@@ -293,10 +208,6 @@ export default function AdminReviewPage() {
   const handleSignOut = async () => {
     await signOut(auth);
     setQueue([]);
-    setPhoneDigits("");
-    setSavedPhoneE164(null);
-    setPhoneSuccess(null);
-    setPhoneError(null);
   };
 
   const handleApprove = async (sightingId: string) => {
@@ -364,62 +275,6 @@ export default function AdminReviewPage() {
                   <p className="form-hint">Signed in as {user.email}</p>
                   <button className="btn secondary" type="button" onClick={handleSignOut}>
                     Sign out
-                  </button>
-                </div>
-
-                <div className="upload-form admin-notification-panel">
-                  <h2 className="admin-section-title">Notification Preferences</h2>
-
-                  {savedPhoneE164 ? (
-                    <p className="admin-current-phone" role="status">
-                      Currently receiving alerts at: {formatUsPhoneDisplay(savedPhoneE164)}
-                    </p>
-                  ) : null}
-
-                  <div className="form-field">
-                    <label className="form-label" htmlFor={phoneId}>
-                      Phone Number
-                    </label>
-                    <input
-                      id={phoneId}
-                      className="form-input"
-                      type="tel"
-                      inputMode="numeric"
-                      autoComplete="tel"
-                      value={formatUsPhoneInput(phoneDigits)}
-                      onChange={(event) => handlePhoneChange(event.target.value)}
-                      placeholder="(555) 555-1234"
-                      disabled={phoneLoading || phoneSaving}
-                    />
-                  </div>
-
-                  <p className="admin-consent-text">
-                    Enter your phone number to receive SMS alerts when a new duck sighting is
-                    submitted for admin review. Message frequency varies. Msg &amp; data rates may
-                    apply. Reply STOP to opt out, HELP for help. See our{" "}
-                    <Link href={PRIVACY_POLICY_PATH}>Privacy Policy</Link> and{" "}
-                    <Link href={TERMS_OF_SERVICE_PATH}>Terms of Service</Link>.
-                  </p>
-
-                  {phoneError ? (
-                    <p className="form-message form-message-error" role="alert">
-                      {phoneError}
-                    </p>
-                  ) : null}
-
-                  {phoneSuccess ? (
-                    <p className="form-message form-message-success" role="status">
-                      {phoneSuccess}
-                    </p>
-                  ) : null}
-
-                  <button
-                    className="btn primary form-submit admin-save-phone"
-                    type="button"
-                    onClick={handleSavePhone}
-                    disabled={phoneLoading || phoneSaving || phoneDigits.length < 10}
-                  >
-                    {phoneSaving ? "Saving..." : "Save"}
                   </button>
                 </div>
 

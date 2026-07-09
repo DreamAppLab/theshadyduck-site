@@ -38,8 +38,5 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    match /adminConfig/{docId} {
-      allow read, write: if isAdmin();
-    }
   }
 }
