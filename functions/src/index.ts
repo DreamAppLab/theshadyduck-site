@@ -8,6 +8,7 @@ import type { CallableRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 
 const ADMIN_EMAIL = "eddieskehan@gmail.com";
+const BREVO_SENDER_EMAIL = "lab@dreamapplab.com";
 
 const brevoApiKey = defineSecret("BREVO_API_KEY");
 
@@ -50,33 +51,15 @@ async function sendAdminNotifications(title: string, body: string, imageUrl?: st
   });
 }
 
-async function sendAdminBrevoEmail({
-  name,
-  location,
-  notes,
+async function sendBrevoEmail({
+  subject,
+  textContent,
+  htmlContent,
 }: {
-  name: string;
-  location: string;
-  notes: string | null;
+  subject: string;
+  textContent: string;
+  htmlContent: string;
 }) {
-  const reviewUrl = "https://theshadyduck.com/admin/review";
-  const textContent = [
-    "A new Shady Duck sighting was submitted for review.",
-    "",
-    `Submitter: ${name}`,
-    `Location: ${location}`,
-    `Description: ${notes?.trim() || "No description provided."}`,
-    "",
-    `Review now: ${reviewUrl}`,
-  ].join("\n");
-  const htmlContent = `
-    <p>A new Shady Duck sighting was submitted for review.</p>
-    <p><strong>Submitter:</strong> ${name}</p>
-    <p><strong>Location:</strong> ${location}</p>
-    <p><strong>Description:</strong> ${notes?.trim() || "No description provided."}</p>
-    <p><a href="${reviewUrl}">Open admin review queue</a></p>
-  `;
-
   try {
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
@@ -88,14 +71,14 @@ async function sendAdminBrevoEmail({
       body: JSON.stringify({
         sender: {
           name: "Shady Duck",
-          email: "lab@dreamapplab.com",
+          email: BREVO_SENDER_EMAIL,
         },
         to: [
           {
-            email: "eddieskehan@gmail.com",
+            email: ADMIN_EMAIL,
           },
         ],
-        subject: "New Shady Duck sighting submitted for review",
+        subject,
         textContent,
         htmlContent,
       }),
@@ -189,13 +172,33 @@ export const onSightingCreated = onDocumentCreated(
     );
 
     const notes = typeof data.notes === "string" ? data.notes : null;
-    await sendAdminBrevoEmail({ name, location, notes });
+    const reviewUrl = "https://theshadyduck.com/admin/review";
+    await sendBrevoEmail({
+      subject: "New Shady Duck sighting submitted for review",
+      textContent: [
+        "A new Shady Duck sighting was submitted for review.",
+        "",
+        `Submitter: ${name}`,
+        `Location: ${location}`,
+        `Description: ${notes?.trim() || "No description provided."}`,
+        "",
+        `Review now: ${reviewUrl}`,
+      ].join("\n"),
+      htmlContent: `
+        <p>A new Shady Duck sighting was submitted for review.</p>
+        <p><strong>Submitter:</strong> ${name}</p>
+        <p><strong>Location:</strong> ${location}</p>
+        <p><strong>Description:</strong> ${notes?.trim() || "No description provided."}</p>
+        <p><a href="${reviewUrl}">Open admin review queue</a></p>
+      `,
+    });
   },
 );
 
 export const onGrowRequestCreated = onDocumentCreated(
   {
     document: "growRequests/{requestId}",
+    secrets: [brevoApiKey],
   },
   async (event) => {
     const data = event.data?.data();
@@ -204,11 +207,29 @@ export const onGrowRequestCreated = onDocumentCreated(
     const name = typeof data.name === "string" ? data.name : "Someone";
     const city = typeof data.city === "string" ? data.city : "";
     const state = typeof data.state === "string" ? data.state : "";
+    const location = [city, state].filter(Boolean).join(", ");
 
     await sendAdminNotifications(
       "New grow request",
-      `${name} requested ducks for ${[city, state].filter(Boolean).join(", ")}`,
+      `${name} requested ducks for ${location}`,
     );
+
+    await sendBrevoEmail({
+      subject: "New Grow Request - Shady Duck",
+      textContent: [
+        "A new Help Us Grow request was submitted.",
+        "",
+        `Name: ${name}`,
+        `City: ${city || "N/A"}`,
+        `State: ${state || "N/A"}`,
+      ].join("\n"),
+      htmlContent: `
+        <p>A new Help Us Grow request was submitted.</p>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>City:</strong> ${city || "N/A"}</p>
+        <p><strong>State:</strong> ${state || "N/A"}</p>
+      `,
+    });
   },
 );
 
