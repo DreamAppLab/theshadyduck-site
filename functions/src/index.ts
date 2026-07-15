@@ -204,14 +204,33 @@ export const onGrowRequestCreated = onDocumentCreated(
     const data = event.data?.data();
     if (!data) return;
 
-    const name = typeof data.name === "string" ? data.name : "Someone";
-    const city = typeof data.city === "string" ? data.city : "";
-    const state = typeof data.state === "string" ? data.state : "";
-    const location = [city, state].filter(Boolean).join(", ");
+    const name = typeof data.name === "string" && data.name.trim() ? data.name.trim() : "Someone";
+    const email = typeof data.email === "string" && data.email.trim() ? data.email.trim() : "N/A";
+    const streetAddress =
+      typeof data.streetAddress === "string" && data.streetAddress.trim()
+        ? data.streetAddress.trim()
+        : "N/A";
+    const city = typeof data.city === "string" && data.city.trim() ? data.city.trim() : "N/A";
+    const state = typeof data.state === "string" && data.state.trim() ? data.state.trim() : "N/A";
+    const postalCode =
+      typeof data.postalCode === "string" && data.postalCode.trim()
+        ? data.postalCode.trim()
+        : "N/A";
+    const country =
+      typeof data.country === "string" && data.country.trim() ? data.country.trim() : "N/A";
+
+    const fcmAddressLine = [
+      streetAddress !== "N/A" ? streetAddress : null,
+      [city !== "N/A" ? city : null, state !== "N/A" ? state : null, postalCode !== "N/A" ? postalCode : null]
+        .filter(Boolean)
+        .join(", ") || null,
+    ]
+      .filter(Boolean)
+      .join(", ");
 
     await sendAdminNotifications(
       "New grow request",
-      `${name} requested ducks for ${location}`,
+      `${name} — ${fcmAddressLine || "address unavailable"}`,
     );
 
     await sendBrevoEmail({
@@ -220,14 +239,22 @@ export const onGrowRequestCreated = onDocumentCreated(
         "A new Help Us Grow request was submitted.",
         "",
         `Name: ${name}`,
-        `City: ${city || "N/A"}`,
-        `State: ${state || "N/A"}`,
+        `Email: ${email}`,
+        `Address: ${streetAddress}`,
+        `City: ${city}`,
+        `State: ${state}`,
+        `Zip: ${postalCode}`,
+        `Country: ${country}`,
       ].join("\n"),
       htmlContent: `
         <p>A new Help Us Grow request was submitted.</p>
         <p><strong>Name:</strong> ${name}</p>
-        <p><strong>City:</strong> ${city || "N/A"}</p>
-        <p><strong>State:</strong> ${state || "N/A"}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Address:</strong> ${streetAddress}</p>
+        <p><strong>City:</strong> ${city}</p>
+        <p><strong>State:</strong> ${state}</p>
+        <p><strong>Zip:</strong> ${postalCode}</p>
+        <p><strong>Country:</strong> ${country}</p>
       `,
     });
   },
